@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/krrishitejas/Zerogate-Dev/blob/main/images/logo1.png" alt="ZEROGATE Logo" width="500" />
+  <img src="https://github.com/krrishitejas/Zerogate-Dev/blob/main/media/logo1.png" alt="ZEROGATE Logo" width="500" />
 </div>
 
 
