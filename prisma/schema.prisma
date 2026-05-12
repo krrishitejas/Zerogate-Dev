@@ -1,0 +1,220 @@
+// ZEROGATE — Prisma schema
+// Postgres for Vercel/production. For local SQLite dev, change provider back to "sqlite".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  plan          String    @default("FREE")
+  githubLogin   String?
+  githubToken   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  projects Project[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ── Projects & Files ────────────────────────────────────────────────────────
+model Project {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  source      String
+  repoUrl     String?
+  repoOwner   String?
+  repoName    String?
+  defaultBranch String? @default("main")
+  language    String?
+  fileCount   Int      @default(0)
+  totalLOC    Int      @default(0)
+  status      String   @default("IDLE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files       SourceFile[]
+  scans       Scan[]
+  findings    Finding[]
+  reports     Report[]
+  agentRuns   AgentRun[]
+  events      ProjectEvent[]
+
+  @@index([userId])
+}
+
+model SourceFile {
+  id          String  @id @default(cuid())
+  projectId   String
+  path        String
+  language    String?
+  size        Int     @default(0)
+  loc         Int     @default(0)
+  hash        String?
+  content     String  // For SQLite simplicity. In prod store on object storage and keep pointer.
+  isHidden    Boolean @default(false)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  findings    Finding[]
+
+  @@unique([projectId, path])
+  @@index([projectId])
+}
+
+// ── Scans, Findings, Fixes ──────────────────────────────────────────────────
+model Scan {
+  id          String   @id @default(cuid())
+  projectId   String
+  status      String   @default("PENDING")
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  triggeredBy String?
+  summary     String?
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  findings    Finding[]
+
+  @@index([projectId])
+}
+
+model Finding {
+  id           String      @id @default(cuid())
+  scanId       String
+  projectId    String
+  fileId       String?
+  agent        String
+  category     String
+  severity     String
+  cwe          String?
+  title        String
+  description  String
+  filePath     String
+  line         Int?
+  endLine      Int?
+  snippet      String?
+  status       String      @default("OPEN")
+  confidence   Float       @default(0.85)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  scan         Scan        @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  file         SourceFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fixes        Fix[]
+
+  @@index([projectId])
+  @@index([scanId])
+}
+
+model Fix {
+  id          String   @id @default(cuid())
+  findingId   String
+  agent       String
+  rationale   String
+  patch       String
+  before      String
+  after       String
+  applied     Boolean  @default(false)
+  appliedAt   DateTime?
+  iteration   Int      @default(1)
+  createdAt   DateTime @default(now())
+
+  finding     Finding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
+}
+
+// ── Agents & Reports ────────────────────────────────────────────────────────
+model AgentRun {
+  id          String   @id @default(cuid())
+  projectId   String
+  agent       String
+  status      String   @default("running")
+  message     String?
+  meta        String?
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  summary     String
+  markdown    String
+  totals      String   // JSON-serialized counts
+  csvPath     String?
+  xlsxPath    String?
+  createdAt   DateTime @default(now())
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectEvent {
+  id        String   @id @default(cuid())
+  projectId String
+  kind      String
+  message   String
+  meta      String?
+  createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
