@@ -32,7 +32,7 @@
 6. [Data Flow Pipeline](#-data-flow-pipeline)
 7. [Tech Stack](#-tech-stack)
 8. [Getting Started](#-getting-started)
-9. [License](#-license)
+9. [License](https://github.com/krrishitejas/Zerogate-Dev/blob/main/LICENSE)
 
 ---
 
