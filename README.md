@@ -17,7 +17,7 @@
 
 <div align="center">
   <a href="https://youtu.be/tgkze7UH0CY">
-    <img src="https://github.com/krrishitejas/Zerogate-Dev/blob/main/images/landing%20page%201.png" alt="Watch the ZEROGATE Demo" style="max-width:100%; border-radius: 12px;">
+    <img src="https://github.com/krrishitejas/Zerogate-Dev/blob/main/media/landing%20page%201.png" alt="Watch the ZEROGATE Demo" style="max-width:100%; border-radius: 12px;">
   </a>
 </div>
 
